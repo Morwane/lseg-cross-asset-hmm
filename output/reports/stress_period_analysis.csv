@@ -1,0 +1,5 @@
+period,start,end,coverage,n_days,benchmark_total_ret,overlay_total_ret,benchmark_max_drawdown,overlay_max_drawdown,dominant_regime
+COVID crash,2020-02-15,2020-04-30,outside backtest window,0,,,,,n/a
+Inflation/rates shock,2022-01-01,2022-12-31,outside backtest window,0,,,,,n/a
+Regional banking stress,2023-03-01,2023-04-30,partial (2023-04-04→2023-04-30),19,0.010903113339523651,-0.007879767686126082,-0.023798578535549786,-0.00716193250788999,stress
+2025 tariff correction,2025-01-20,2025-04-23,full,67,-0.10352429519098982,-0.002010919423723112,-0.1890220779115095,-0.01603530095514527,stress

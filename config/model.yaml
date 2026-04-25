@@ -1,0 +1,72 @@
+features:
+  returns_windows: [1, 5, 20]
+  realised_vol_window: 20
+  zscore_window: 252
+  include_vix: true
+  include_dxy: true
+  include_oil: true
+  include_true_yield_curve: true
+  include_rates_proxies: false
+
+  # Compact set fed into the HMM (8 features — avoids covariance matrix degeneracy)
+  hmm_core:
+    - equity_ret_1d
+    - equity_ret_5d
+    - equity_realised_vol_20d
+    - vix_level
+    - vix_zscore_252d
+    - slope_10y_2y
+    - curve_level
+    - us_10y_change_bps
+
+  # Full feature set used for diagnostics and regime-summary reporting only
+  diagnostic:
+    - equity_ret_20d
+    - equity_drawdown
+    - vix_change_1d
+    - dxy_ret_1d
+    - dxy_zscore_252d
+    - brent_ret_1d
+    - brent_ret_5d
+    - brent_realised_vol_20d
+    - us_2y_yield
+    - us_5y_yield
+    - us_10y_yield
+    - us_30y_yield
+    - slope_30y_5y
+    - curve_butterfly_2s10s30s
+    - curve_slope_change_bps
+
+hmm:
+  n_components_candidates: [2, 3, 4]
+  preferred_n_components: 3
+  covariance_type: full
+  covariance_type_fallback: diag
+  n_iter: 1000
+  random_state: 42
+  retrain_frequency: monthly
+  initial_train_years: 3
+
+risk_overlay:
+  regime_mapping:
+    risk_on: 1.0
+    transition: 0.5
+    stress: 0.0
+  defensive_asset: "SHY.O"
+  allow_short_variant: false
+
+# Historical stress windows for out-of-sample analysis
+# Periods before the walk-forward OOS start (2023-04-04) are reported as N/A
+stress_periods:
+  - name: "COVID crash"
+    start: "2020-02-15"
+    end: "2020-04-30"
+  - name: "Inflation/rates shock"
+    start: "2022-01-01"
+    end: "2022-12-31"
+  - name: "Regional banking stress"
+    start: "2023-03-01"
+    end: "2023-04-30"
+  - name: "2025 tariff correction"
+    start: "2025-01-20"
+    end: "2025-04-23"

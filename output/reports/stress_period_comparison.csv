@@ -1,0 +1,5 @@
+period,start,end,coverage,n_days,benchmark_total_ret,defensive_total_ret,dominant_regime,bull_aware_total_ret,regime_momentum_total_ret,vol_managed_total_ret
+COVID crash,2020-02-15,2020-04-30,outside backtest window,0,,,n/a,,,
+Inflation/rates shock,2022-01-01,2022-12-31,outside backtest window,0,,,n/a,,,
+Regional banking stress,2023-03-01,2023-04-30,partial (2023-04-04→2023-04-30),19,0.010903113339523651,-0.007879767686126082,stress,-0.003226835536016881,-0.0040141747103324965,-0.0012638797255231093
+2025 tariff correction,2025-01-20,2025-04-23,full,67,-0.10352429519098982,-0.002010919423723112,stress,-0.029543788805113325,-0.030655512511596483,-0.035397737268968665

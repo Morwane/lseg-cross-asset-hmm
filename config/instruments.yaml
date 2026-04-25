@@ -1,0 +1,92 @@
+equity:
+  logical_name: us_equity
+  candidates:
+    - ric: ".SPX"
+      label: "S&P 500 Index"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+    - ric: "SPY.O"
+      label: "SPDR S&P 500 ETF"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+    - ric: "SPY"
+      label: "SPDR S&P 500 ETF alternate"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+
+volatility:
+  logical_name: vix
+  candidates:
+    - ric: ".VIX"
+      label: "CBOE VIX Index"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+    - ric: "VIX"
+      label: "VIX alternate"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+
+fx:
+  logical_name: usd_index
+  candidates:
+    - ric: "DXY"
+      label: "US Dollar Index"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+    - ric: ".DXY"
+      label: "US Dollar Index alternate"
+      fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+
+commodities:
+  brent:
+    logical_name: brent_front
+    candidates:
+      - ric: "LCOc1"
+        label: "Brent front-month continuous future"
+        fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+  wti:
+    logical_name: wti_front
+    candidates:
+      - ric: "CLc1"
+        label: "WTI front-month continuous future"
+        fields: ["TRDPRC_1", "CLOSE", "CF_CLOSE"]
+
+rates_true_yield_curve:
+  us_2y:
+    ric: "US2YT=RR"
+    field: "TR.MIDYIELD"
+    label: "US 2Y Treasury yield"
+  us_5y:
+    ric: "US5YT=RR"
+    field: "TR.MIDYIELD"
+    label: "US 5Y Treasury yield"
+  us_10y:
+    ric: "US10YT=RR"
+    field: "TR.MIDYIELD"
+    label: "US 10Y Treasury yield"
+  us_30y:
+    ric: "US30YT=RR"
+    field: "TR.MIDYIELD"
+    label: "US 30Y Treasury yield"
+
+rates_proxies:
+  futures:
+    - ric: "TUc1"
+      label: "2Y Treasury futures proxy"
+      field: "TRDPRC_1"
+    - ric: "FVc1"
+      label: "5Y Treasury futures proxy"
+      field: "TRDPRC_1"
+    - ric: "TYc1"
+      label: "10Y Treasury futures proxy"
+      field: "TRDPRC_1"
+    - ric: "USc1"
+      label: "30Y Treasury futures proxy"
+      field: "TRDPRC_1"
+  etfs:
+    - ric: "SHY.O"
+      label: "Short Treasury ETF / defensive proxy"
+      field: "TRDPRC_1"
+    - ric: "IEI.O"
+      label: "Intermediate Treasury ETF"
+      field: "TRDPRC_1"
+    - ric: "IEF.O"
+      label: "7-10Y Treasury ETF"
+      field: "TRDPRC_1"
+    - ric: "TLT.O"
+      label: "Long Treasury ETF"
+      field: "TRDPRC_1"

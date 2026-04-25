@@ -1,0 +1,2 @@
+rule,n_days_in_bull,pct_time_in_bull,benchmark_return,defensive_overlay_return,bull_aware_overlay_return,regime_momentum_return,vol_managed_return
+60d_return>0 AND price>200d_MA,644,81.4,0.983568092086611,0.19276492767658548,0.42654349596810714,0.6135652234505202,0.4787005182896984

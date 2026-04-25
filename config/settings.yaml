@@ -1,0 +1,19 @@
+project:
+  name: lseg-cross-asset-hmm-regime-risk-overlay
+  version: "1.0.0"
+
+lseg:
+  session_name: desktop.workspace
+
+backtest:
+  start_date: "2019-04-25"
+  end_date: null
+  trading_days: 252
+  transaction_cost_bps: 5
+  use_one_day_signal_lag: true
+
+outputs:
+  audit_dir: output/audit
+  data_dir: output/data
+  chart_dir: output/charts
+  report_dir: output/reports
