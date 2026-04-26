@@ -683,24 +683,35 @@ pytest
 
 **Chart 25 — Bootstrap Sharpe Ratio 90% Confidence Intervals**
 
+![Bootstrap Sharpe confidence intervals](output/charts/25_bootstrap_sharpe_ci.png)
+
 Shows the p5, median, and p95 bounds for each strategy's Sharpe ratio across 10,000 bootstrap resamples. All strategies have p5 > 0, confirming robustness even in the worst 5% tail of the empirical distribution.
+
 
 **Chart 26 — Deflated Sharpe Ratio (Bailey & López de Prado, 2014)**
 
+![Deflated Sharpe ratio](output/charts/26_deflated_sharpe_ratio.png)
+
 Adjusts for non-normality (fat tails, negative skew) and multiple-comparison bias. All five strategies achieve DSR ≥ 0.96, statistically significant after accounting for high excess kurtosis (4–14).
-</details>
+
 
 <details>
 <summary>Charts 27–28 — Professional risk layer (Phase 4)</summary>
 
 **Chart 27 — CVaR by Regime**
 
+![CVaR by regime](output/charts/27_cvar_by_regime.png)
+
 Conditional Value-at-Risk (Expected Shortfall, 95% confidence) per strategy × regime. Illustrates that stress-regime tail risk is consistently 2× worse than risk-on, confirming regime labels are economically meaningful.
+
 
 **Chart 28 — Risk-Controlled Overlay (Vol Target 8%, Stop-Loss, Turnover Cap)**
 
+![Risk-controlled overlay](output/charts/28_risk_controlled_overlay.png)
+
 Cumulative returns after applying all three institutional risk controls (vol scaling, equity-curve stop-loss at ±10%/−5%, max daily weight change 10pp). Red shading indicates stop-loss periods. Turnover cap and vol targeting reduce drawdowns but also cap upside capture.
 </details>
+
 
 ---
 
