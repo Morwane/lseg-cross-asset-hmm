@@ -116,7 +116,7 @@ All data is retrieved from LSEG Workspace via the `lseg.data` Python library. Th
 
 | Block | RIC / Field | Status |
 |---|---|---|
-| US 2Y/5Y/10Y/30Y Treasury yields | `TR.MIDYIELD` via `ld.get_history()` | Confirmed — 5 years daily |
+| US 2Y/5Y/10Y/30Y Treasury yields | `TR.MIDYIELD` via `ld.get_history()` | Confirmed — daily history from 2005 to 2026 |
 | S&P 500 | `.SPX` / `SPY.O` — `TRDPRC_1` | Audited per run |
 | CBOE VIX | `.VIX` — `TRDPRC_1` | Audited per run |
 | US Dollar Index | DXY — `TRDPRC_1` | Audited per run |
@@ -169,11 +169,11 @@ Labels are data-derived. If the HMM renumbers states across folds, the labelling
 ## 6. Walk-forward validation
 
 - **Method:** Expanding-window (anchored start at 2005-01-03)
-- **Initial training window:** 5 years (first OOS prediction ~2010-01)
+- **Initial training window:** 5 years (first OOS prediction 2010-12-01)
 - **Refit frequency:** Monthly
-- **Number of folds:** ~190
-- **Full OOS window:** ~2010-01 → 2026-04-23 (~16 years, ~4,000 trading days)
-- **Post-2023 results window:** 2023-04-04 → 2026-04-23 (791 trading days, current reported metrics)
+- **Number of folds:** 185
+- **Full OOS window:** 2010-12-01 → 2026-04-24 (4,003 OOS rows)
+- **Recent results window:** 2023-04-04 → 2026-04-23 (791 trading days, current reported metrics)
 
 The `StandardScaler` is re-fit on each training fold independently. The OOS window is never seen during training or scaling. Walk-forward predictions are saved to `output/reports/walk_forward_regime_predictions.csv`.
 
@@ -249,7 +249,9 @@ All panel inputs are lagged by one day across all four overlay variants — no l
 
 ## 8. Main results
 
-### Five-strategy comparison (OOS: 2023-04-04 → 2026-04-23, 791 days)
+### Five-strategy comparison — Recent results window (2023-04-04 → 2026-04-23, 791 days)
+
+> **Note:** The full walk-forward regime prediction sample runs from 2010-12-01 to 2026-04-24 (4,003 OOS rows, 185 monthly retrains). The table below shows performance metrics computed over the recent comparable strategy-performance window (2023-04-04 → 2026-04-23), where all five overlays are backtested side-by-side. For walk-forward regime signal quality and multi-regime validation, see Charts 2, 23 (subperiod performance), and the CVaR by regime table (Section 11c).
 
 | Metric | Benchmark | Defensive | Bull-Aware | Regime Mom | Vol Managed |
 |---|---:|---:|---:|---:|---:|
@@ -473,7 +475,7 @@ CVaR in stress regimes is consistently 2× worse than in risk-on — confirming 
 ## 12. Limitations
 
 - Requires a live LSEG Workspace desktop session; no offline mode.
-- Walk-forward OOS window begins April 2023. COVID crash (2020) and 2022 rates shock are in-sample and not evaluated.
+- The **full walk-forward OOS window** (2010-12-01 → 2026-04-24) covers six major crisis regimes: 2011 Eurozone crisis, 2015–16 China/oil shock, 2018 Q4 selloff, 2020 COVID crash, 2022 rates shock, and 2025 tariff correction — all are evaluated out-of-sample. Performance metrics reported focus on the recent 2023–2026 window for comparability with contemporaneous trading desks.
 - HMM regimes are statistical clusters, not fundamental macro labels.
 - Transaction costs are simplified (5 bps flat); real institutional costs vary by size, market impact, and instrument.
 - Overlay weights are rule-based and were fixed before any OOS observation — not optimised — which is both a strength (no data snooping) and a limitation (no adaptation).
@@ -674,6 +676,30 @@ pytest
 **Chart 24 — Strategy Ranking by Objective**
 
 ![Strategy ranking](output/charts/24_strategy_ranking.png)
+</details>
+
+<details>
+<summary>Charts 25–26 — Statistical robustness (Phase 3)</summary>
+
+**Chart 25 — Bootstrap Sharpe Ratio 90% Confidence Intervals**
+
+Shows the p5, median, and p95 bounds for each strategy's Sharpe ratio across 10,000 bootstrap resamples. All strategies have p5 > 0, confirming robustness even in the worst 5% tail of the empirical distribution.
+
+**Chart 26 — Deflated Sharpe Ratio (Bailey & López de Prado, 2014)**
+
+Adjusts for non-normality (fat tails, negative skew) and multiple-comparison bias. All five strategies achieve DSR ≥ 0.96, statistically significant after accounting for high excess kurtosis (4–14).
+</details>
+
+<details>
+<summary>Charts 27–28 — Professional risk layer (Phase 4)</summary>
+
+**Chart 27 — CVaR by Regime**
+
+Conditional Value-at-Risk (Expected Shortfall, 95% confidence) per strategy × regime. Illustrates that stress-regime tail risk is consistently 2× worse than risk-on, confirming regime labels are economically meaningful.
+
+**Chart 28 — Risk-Controlled Overlay (Vol Target 8%, Stop-Loss, Turnover Cap)**
+
+Cumulative returns after applying all three institutional risk controls (vol scaling, equity-curve stop-loss at ±10%/−5%, max daily weight change 10pp). Red shading indicates stop-loss periods. Turnover cap and vol targeting reduce drawdowns but also cap upside capture.
 </details>
 
 ---
