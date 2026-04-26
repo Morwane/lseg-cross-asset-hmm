@@ -45,7 +45,7 @@ hmm:
   n_iter: 1000
   random_state: 42
   retrain_frequency: monthly
-  initial_train_years: 3
+  initial_train_years: 5
 
 risk_overlay:
   regime_mapping:
@@ -55,16 +55,29 @@ risk_overlay:
   defensive_asset: "SHY.O"
   allow_short_variant: false
 
-# Historical stress windows for out-of-sample analysis
-# Periods before the walk-forward OOS start (2023-04-04) are reported as N/A
+# Historical stress windows for out-of-sample analysis.
+# With a 5-year initial window from 2005, the OOS window starts ~2010-01.
+# Periods before OOS start are reported with coverage="outside backtest window".
 stress_periods:
-  - name: "COVID crash"
+  - name: "2008 GFC"
+    start: "2008-09-01"
+    end: "2009-03-31"
+  - name: "2011 Eurozone crisis"
+    start: "2011-07-01"
+    end: "2011-10-31"
+  - name: "2015-16 China/oil shock"
+    start: "2015-08-01"
+    end: "2016-02-29"
+  - name: "2018 Q4 selloff"
+    start: "2018-09-28"
+    end: "2018-12-31"
+  - name: "2020 COVID crash"
     start: "2020-02-15"
     end: "2020-04-30"
-  - name: "Inflation/rates shock"
+  - name: "2022 rates/inflation shock"
     start: "2022-01-01"
     end: "2022-12-31"
-  - name: "Regional banking stress"
+  - name: "2023 regional banking stress"
     start: "2023-03-01"
     end: "2023-04-30"
   - name: "2025 tariff correction"

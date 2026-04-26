@@ -1478,6 +1478,257 @@ def plot_strategy_ranking(ranking_df: pd.DataFrame, path: Path) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Chart 25 — Bootstrap Sharpe confidence intervals
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_bootstrap_sharpe_ci(bootstrap_df: pd.DataFrame, path: Path) -> None:
+    """90% bootstrap CI for annualised Sharpe ratio — one bar per strategy."""
+    fig, ax = plt.subplots(figsize=(13, 6))
+    fig.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    strats = [s for s in STRATEGY_COLORS if s in bootstrap_df["strategy"].values]
+    y_pos  = np.arange(len(strats))
+
+    for i, strat in enumerate(strats):
+        row = bootstrap_df[bootstrap_df["strategy"] == strat].iloc[0]
+        lo  = row["sharpe_p5"]
+        mid = row["sharpe_p50"]
+        hi  = row["sharpe_p95"]
+        color = STRATEGY_COLORS[strat]
+        label = STRATEGY_LABELS.get(strat, strat)
+
+        # CI band
+        ax.barh(i, hi - lo, left=lo, height=0.46, color=color, alpha=0.28,
+                edgecolor=color, linewidth=0.8)
+        # Median
+        ax.vlines(mid, i - 0.30, i + 0.30, colors=color, linewidth=2.4, zorder=5)
+        # p25/p75 inner band
+        ax.barh(i, row["sharpe_p75"] - row["sharpe_p25"],
+                left=row["sharpe_p25"], height=0.38, color=color, alpha=0.55,
+                edgecolor="none", zorder=3)
+
+        ax.text(hi + 0.04, i, f"  {mid:.2f} [{lo:.2f}, {hi:.2f}]",
+                va="center", fontsize=9, color=color, fontweight="bold")
+        ax.text(-0.5, i, label, va="center", ha="right", fontsize=9.5, color=C_TEXT)
+
+    ax.axvline(0, color="#888", linewidth=0.8, linestyle="--", alpha=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels([""] * len(strats))
+    ax.set_xlabel("Annualised Sharpe Ratio", fontsize=10, color=C_TEXT)
+    ax.set_title(
+        "Statistical Robustness — Bootstrap Sharpe Confidence Intervals (90% CI)",
+        fontsize=13, fontweight="bold", color=C_TEXT, pad=10,
+    )
+    ax.text(0, 1.01,
+            "IID percentile bootstrap  |  10 000 resamples  |  Shaded band = p25–p75  |"
+            "  Thin bar = p5–p95  |  Vertical line = median",
+            transform=ax.transAxes, fontsize=8, color=C_SUB)
+    _style(ax)
+    ax.set_xlim(left=ax.get_xlim()[0] - 0.2)
+    fig.tight_layout()
+    _save(fig, path)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chart 26 — Deflated Sharpe Ratio
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_deflated_sharpe_ratio(dsr_df: pd.DataFrame, path: Path) -> None:
+    """DSR probability bar chart — one bar per strategy, reference lines at 0.95 / 0.99."""
+    fig, ax = plt.subplots(figsize=(12, 5))
+    fig.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    strats = [s for s in STRATEGY_COLORS if s in dsr_df["strategy"].values]
+    x_pos  = np.arange(len(strats))
+    colors = [STRATEGY_COLORS[s] for s in strats]
+    labels = [STRATEGY_LABELS.get(s, s) for s in strats]
+    dsrs   = [float(dsr_df[dsr_df["strategy"] == s]["dsr"].iloc[0]) for s in strats]
+    srs    = [float(dsr_df[dsr_df["strategy"] == s]["sr_annualized"].iloc[0])
+              for s in strats]
+
+    bars = ax.bar(x_pos, dsrs, color=colors, alpha=0.85, width=0.55,
+                  edgecolor="white", linewidth=0.8, zorder=3)
+
+    for bar, dsr_val, sr_val, color in zip(bars, dsrs, srs, colors):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.012,
+                f"DSR={dsr_val:.2f}\nSR={sr_val:.2f}",
+                ha="center", va="bottom", fontsize=8.5, color=color, fontweight="bold")
+
+    ax.axhline(0.95, color="#e74c3c", linewidth=1.2, linestyle="--", alpha=0.8,
+               label="p=0.95 threshold")
+    ax.axhline(0.99, color="#c0392b", linewidth=1.2, linestyle=":",  alpha=0.8,
+               label="p=0.99 threshold")
+
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=0))
+    ax.set_ylim(0, 1.12)
+    ax.set_ylabel("Probability (DSR)", fontsize=10, color=C_TEXT)
+    ax.set_title(
+        "Statistical Robustness — Deflated Sharpe Ratio (N=5 strategies)",
+        fontsize=13, fontweight="bold", color=C_TEXT, pad=10,
+    )
+    ax.text(0, 1.01,
+            "Bailey & Lopez de Prado (2014)  |  Adjusts for non-normality and multiple testing"
+            "  |  Higher = more statistically robust",
+            transform=ax.transAxes, fontsize=8, color=C_SUB)
+    ax.legend(fontsize=9, framealpha=0.9, loc="lower right")
+    _style(ax)
+    fig.tight_layout()
+    _save(fig, path)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chart 27 — CVaR by market regime
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_cvar_by_regime(cvar_df: pd.DataFrame, path: Path) -> None:
+    """Grouped bar chart: 95% CVaR per strategy, split by market regime."""
+    df95 = cvar_df[cvar_df["confidence"] == 0.95].copy()
+    if df95.empty:
+        logger.warning("No 95%% CVaR data — skipping chart 27")
+        return
+
+    regime_order = [r for r in ("risk_on", "transition", "stress")
+                    if r in df95["regime"].values]
+    strat_order  = [s for s in STRATEGY_COLORS if s in df95["strategy"].values]
+    if not regime_order or not strat_order:
+        return
+
+    n_regimes = len(regime_order)
+    n_strats  = len(strat_order)
+    width     = 0.75 / n_strats
+    x         = np.arange(n_regimes)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    fig.set_facecolor("white")
+
+    for i, strat in enumerate(strat_order):
+        vals = []
+        for regime in regime_order:
+            row = df95[(df95["strategy"] == strat) & (df95["regime"] == regime)]
+            vals.append(float(row["cvar"].iloc[0]) * 100.0 if len(row) else np.nan)
+        offset = (i - (n_strats - 1) / 2.0) * width
+        bars   = ax.bar(
+            x + offset, vals,
+            width=width * 0.92,
+            color=STRATEGY_COLORS[strat],
+            alpha=0.85,
+            label=STRATEGY_LABELS.get(strat, strat),
+            edgecolor="white", linewidth=0.6, zorder=3,
+        )
+        for bar, v in zip(bars, vals):
+            if not np.isnan(v):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    v - 0.05, f"{v:.2f}%",
+                    ha="center", va="top", fontsize=7.5, color="white", fontweight="bold",
+                )
+
+    regime_labels = {"risk_on": "Risk-On", "transition": "Transition", "stress": "Stress"}
+    ax.set_xticks(x)
+    ax.set_xticklabels([regime_labels.get(r, r) for r in regime_order], fontsize=11)
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=2))
+    ax.set_ylabel("CVaR (daily %, 95% confidence)", fontsize=10, color=C_TEXT)
+    ax.set_title(
+        "Conditional Value-at-Risk by Market Regime  (95% confidence)",
+        fontsize=13, fontweight="bold", color=C_TEXT, pad=10,
+    )
+    ax.text(0, 1.01,
+            "Expected Shortfall = mean return in the worst 5% of daily observations per regime",
+            transform=ax.transAxes, fontsize=8, color=C_SUB)
+    ax.legend(fontsize=9, framealpha=0.9, loc="lower right")
+    ax.invert_yaxis()
+    _style(ax)
+    fig.tight_layout()
+    _save(fig, path)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chart 28 — Risk-controlled overlay comparison
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_risk_controlled_overlay(risk_df: pd.DataFrame, path: Path) -> None:
+    """Two-panel chart: cumulative returns + equity-weight comparison."""
+    required = {"benchmark_ret", "overlay_ret", "rc_def_ret", "rc_def_equity_weight",
+                "equity_weight"}
+    if not required.issubset(risk_df.columns):
+        logger.warning("Missing columns for chart 28 — skipping")
+        return
+
+    fig = plt.figure(figsize=(14, 9))
+    gs  = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.10)
+    ax_ret = fig.add_subplot(gs[0])
+    ax_wt  = fig.add_subplot(gs[1], sharex=ax_ret)
+    fig.set_facecolor("white")
+
+    idx = risk_df.index
+
+    # Cumulative returns
+    bench_cum = (1 + risk_df["benchmark_ret"].fillna(0)).cumprod()
+    orig_cum  = (1 + risk_df["overlay_ret"].fillna(0)).cumprod()
+    rc_cum    = (1 + risk_df["rc_def_ret"].fillna(0)).cumprod()
+
+    ax_ret.plot(idx, bench_cum, color=C_BENCH, linewidth=1.4, label="Benchmark (100% equity)",
+                alpha=0.9)
+    ax_ret.plot(idx, orig_cum,  color=C_DEF,   linewidth=1.6, label="Defensive Overlay",
+                alpha=0.95)
+    ax_ret.plot(idx, rc_cum,    color="#e67e22", linewidth=2.0,
+                label="Risk-Controlled Overlay", linestyle="--", alpha=0.95)
+
+    # Shade stop-loss active periods
+    if "rc_def_stop_active" in risk_df.columns:
+        _shade_bool(ax_ret, idx, risk_df["rc_def_stop_active"], color="#e74c3c", alpha=0.10,
+                    label="Stop-loss active")
+
+    ax_ret.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=0))
+    ax_ret.set_ylabel("Cumulative return (rebased to 1)", fontsize=10, color=C_TEXT)
+    ax_ret.legend(fontsize=9, framealpha=0.9)
+    ax_ret.set_title(
+        "Risk-Controlled Overlay — Vol Targeting + Stop-Loss + Turnover Cap",
+        fontsize=13, fontweight="bold", color=C_TEXT, pad=10,
+    )
+    _style(ax_ret)
+
+    # Equity weight panel
+    ax_wt.fill_between(idx, risk_df["equity_weight"].fillna(0),
+                        alpha=0.35, color=C_DEF, label="Original weight")
+    ax_wt.plot(idx, risk_df["rc_def_equity_weight"].fillna(0),
+               color="#e67e22", linewidth=1.4, label="RC weight")
+    ax_wt.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=0))
+    ax_wt.set_ylabel("Equity weight", fontsize=9, color=C_TEXT)
+    ax_wt.set_ylim(0, 1.05)
+    ax_wt.legend(fontsize=8, framealpha=0.9, loc="lower left")
+    _style(ax_wt)
+    plt.setp(ax_ret.get_xticklabels(), visible=False)
+
+    fig.subplots_adjust(left=0.07, right=0.96, top=0.92, bottom=0.08)
+    _save(fig, path)
+
+
+def _shade_bool(ax, idx, mask: pd.Series, color: str, alpha: float,
+                label: str | None = None) -> None:
+    """Shade ax background where boolean mask is True."""
+    in_span = False
+    span_start = None
+    first = True
+    for date, val in zip(idx, mask):
+        if val and not in_span:
+            in_span    = True
+            span_start = date
+        elif not val and in_span:
+            kw = {"label": label} if (label and first) else {}
+            ax.axvspan(span_start, date, color=color, alpha=alpha, linewidth=0, **kw)
+            in_span = False
+            first   = False
+    if in_span:
+        kw = {"label": label} if (label and first) else {}
+        ax.axvspan(span_start, idx[-1], color=color, alpha=alpha, linewidth=0, **kw)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main entry
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1495,8 +1746,12 @@ def generate_all_charts(
     tc_sensitivity_path: Path | None = None,
     subperiod_path: Path | None = None,
     strategy_ranking_path: Path | None = None,
+    bootstrap_ci_path: Path | None = None,
+    dsr_path: Path | None = None,
+    cvar_path: Path | None = None,
+    risk_controlled_path: Path | None = None,
 ) -> list[Path]:
-    """Load all inputs and generate all charts (up to 24). Returns list of saved paths."""
+    """Load all inputs and generate all charts (up to 28). Returns list of saved paths."""
     charts_dir.mkdir(parents=True, exist_ok=True)
 
     panel       = pd.read_csv(panel_path,         index_col=0, parse_dates=True)
@@ -1641,6 +1896,46 @@ def generate_all_charts(
         specs.append(
             ("24_strategy_ranking.png",
              lambda: plot_strategy_ranking(ranking, p("24_strategy_ranking.png")))
+        )
+
+    # Statistical robustness charts (25-26)
+    bootstrap_ci = pd.DataFrame()
+    if bootstrap_ci_path and bootstrap_ci_path.exists():
+        bootstrap_ci = pd.read_csv(bootstrap_ci_path)
+
+    dsr_data = pd.DataFrame()
+    if dsr_path and dsr_path.exists():
+        dsr_data = pd.read_csv(dsr_path)
+
+    if len(bootstrap_ci) > 0:
+        specs.append(
+            ("25_bootstrap_sharpe_ci.png",
+             lambda: plot_bootstrap_sharpe_ci(bootstrap_ci, p("25_bootstrap_sharpe_ci.png")))
+        )
+    if len(dsr_data) > 0:
+        specs.append(
+            ("26_deflated_sharpe_ratio.png",
+             lambda: plot_deflated_sharpe_ratio(dsr_data, p("26_deflated_sharpe_ratio.png")))
+        )
+
+    # Risk-layer charts (27-28)
+    cvar_data = pd.DataFrame()
+    if cvar_path and cvar_path.exists():
+        cvar_data = pd.read_csv(cvar_path)
+
+    rc_data = pd.DataFrame()
+    if risk_controlled_path and risk_controlled_path.exists():
+        rc_data = pd.read_csv(risk_controlled_path, index_col=0, parse_dates=True)
+
+    if len(cvar_data) > 0:
+        specs.append(
+            ("27_cvar_by_regime.png",
+             lambda: plot_cvar_by_regime(cvar_data, p("27_cvar_by_regime.png")))
+        )
+    if len(rc_data) > 0:
+        specs.append(
+            ("28_risk_controlled_overlay.png",
+             lambda: plot_risk_controlled_overlay(rc_data, p("28_risk_controlled_overlay.png")))
         )
 
     saved = []

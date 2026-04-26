@@ -6,7 +6,7 @@ lseg:
   session_name: desktop.workspace
 
 backtest:
-  start_date: "2019-04-25"
+  start_date: "2005-01-03"
   end_date: null
   trading_days: 252
   transaction_cost_bps: 5

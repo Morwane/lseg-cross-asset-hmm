@@ -1,6 +1,6 @@
 # Cross-Asset HMM Regime Engine — Market Regime Report
 
-**Report date:** 2026-04-23
+**Report date:** 2026-04-24
 **Data source:** LSEG Workspace (TR.MIDYIELD yields, SPY/SPX equity, SHY short-duration treasury ETF)
 
 ---
@@ -9,11 +9,11 @@
 
 | Field                | Value                              |
 |----------------------|------------------------------------|
-| Latest signal date   | 2026-04-23                      |
+| Latest signal date   | 2026-04-24                      |
 | Regime label         | **TRANSITION** |
 | Prob (Risk On)       | 0.00%                      |
-| Prob (Transition)    | 100.00%                      |
-| Prob (Stress)        | 0.00%                      |
+| Prob (Transition)    | 99.97%                      |
+| Prob (Stress)        | 0.03%                      |
 | Implied equity wt    | 50% |
 | Defensive asset      | SHY.O                  |
 
@@ -28,29 +28,29 @@
 
 | Tenor | Yield  |
 |-------|--------|
-| 2Y  | 3.829% |
-| 5Y  | 3.954% |
-| 10Y  | 4.322% |
+| 2Y  | 3.783% |
+| 5Y  | 3.920% |
+| 10Y  | 4.305% |
 | 30Y  | 4.911% |
-| 10Y–2Y slope | 0.493pp |
+| 10Y–2Y slope | 0.522pp |
 
 ---
 
 ## Regime Distribution (Out-of-Sample)
 
-Walk-forward OOS window: **2023-04-03** → **2026-04-23**  (792 days)
+Walk-forward OOS window: **2010-12-01** → **2026-04-24**  (4003 days)
 
 | Regime         | Days | Freq   |
 |----------------|------|--------|
-| Transition     |  466 |  58.8% |
-| Stress         |  228 |  28.8% |
-| Risk On        |   98 |  12.4% |
+| Transition     | 1450 |  36.2% |
+| Risk On        | 1445 |  36.1% |
+| Stress         | 1108 |  27.7% |
 
 ---
 
 ## Backtest Performance Summary
 
-Backtest window: **2023-04-04** → **2026-04-23**  (791 trading days)
+Backtest window: **2010-12-02** → **2026-04-24**  (4002 trading days)
 Benchmark: 100% US equity (buy-and-hold)
 Defensive asset: SHY.O
 Signal lag: 1 trading day (no same-day look-ahead)
@@ -58,13 +58,13 @@ Transaction cost: 5 bps per unit weight change
 
 | Metric              | Benchmark        | Overlay          |
 |---------------------|------------------|------------------|
-| CAGR                |            18.9% |             4.1% |
-| Annualised Vol      |            14.6% |             6.2% |
-| Sharpe Ratio        |             1.29 |             0.67 |
-| Max Drawdown        |           -18.9% |            -6.6% |
-| Worst Daily Loss    |            -6.0% |            -1.9% |
-| Total Return        |            72.3% |            13.6% |
-| Avg Equity Exposure |           100.0% |            41.8% |
+| CAGR                |            11.9% |             7.1% |
+| Annualised Vol      |            16.9% |             8.6% |
+| Sharpe Ratio        |             0.70 |             0.83 |
+| Max Drawdown        |           -33.9% |           -13.2% |
+| Worst Daily Loss    |           -12.0% |            -5.9% |
+| Total Return        |           494.1% |           199.1% |
+| Avg Equity Exposure |           100.0% |            54.2% |
 
 ---
 
@@ -72,10 +72,14 @@ Transaction cost: 5 bps per unit weight change
 
 | Period                       | Coverage                           | Benchmark | Overlay  |
 |------------------------------|------------------------------------|-----------|----------|
-| COVID crash                  | outside backtest window            |     n/a |      n/a |
-| Inflation/rates shock        | outside backtest window            |     n/a |      n/a |
-| Regional banking stress      | partial (2023-04-04→2023-04-30)    |    1.1% |    -0.8% |
-| 2025 tariff correction       | full                               |  -10.4% |    -0.2% |
+| 2008 GFC                     | outside backtest window            |     n/a |      n/a |
+| 2011 Eurozone crisis         | full                               |   -5.1% |    -3.1% |
+| 2015-16 China/oil shock      | full                               |   -8.2% |    -3.0% |
+| 2018 Q4 selloff              | full                               |  -14.0% |    -6.9% |
+| 2020 COVID crash             | full                               |  -13.8% |    -6.8% |
+| 2022 rates/inflation shock   | full                               |  -19.4% |   -12.4% |
+| 2023 regional banking stress | full                               |    5.0% |     3.3% |
+| 2025 tariff correction       | full                               |  -10.4% |    -2.2% |
 
 ---
 

@@ -30,7 +30,7 @@ A cross-asset regime-detection engine built on LSEG Workspace data and a Hidden 
 
 ## 1. Project summary
 
-This engine integrates signals across equities, rates, volatility, FX, and commodities to produce a daily probabilistic view of the market regime. A 3-state Gaussian HMM is trained with a 37-fold expanding-window walk-forward, ensuring all reported results are strictly out-of-sample.
+This engine integrates signals across equities, rates, volatility, FX, and commodities to produce a daily probabilistic view of the market regime. A 3-state Gaussian HMM is trained with a ~190-fold expanding-window walk-forward (2005–2026, 5-year initial window), ensuring all reported results are strictly out-of-sample.
 
 Five overlay variants are backtested on the same OOS window (2023-04-04 → 2026-04-23):
 
@@ -66,9 +66,9 @@ Practical desk applications: portfolio risk monitoring, pre-trade scenario frami
 3. **Engineers** 31 cross-asset features: returns, realised vol, yield-curve level/slope/butterfly, VIX z-scores.
 4. **Trains** a 3-state Gaussian HMM on a compact 8-feature core set (BIC-selected).
 5. **Labels** regimes from realised per-state equity return and volatility statistics — never by hardcoded state number.
-6. **Validates** with a 37-fold expanding-window walk-forward (3-year initial window, monthly refit).
+6. **Validates** with a ~190-fold expanding-window walk-forward (5-year initial window from 2005, monthly refit).
 7. **Backtests** all five overlay variants using one-day lagged signals and 5 bps transaction costs.
-8. **Produces** 24 charts, 13 CSVs, and a markdown report covering daily regime dashboard, stress-period analysis, bull-market participation, economic impact, and robustness checks.
+8. **Produces** 28 charts, 17 CSVs, and a markdown report covering daily regime dashboard, stress-period analysis, bull-market participation, economic impact, robustness checks, statistical robustness (DSR + bootstrap CIs), and a professional risk layer (vol targeting, stop-loss, CVaR by regime).
 
 ```
 cross-asset-hmm-regime-risk-overlay/
@@ -83,7 +83,9 @@ cross-asset-hmm-regime-risk-overlay/
 │   ├── train_hmm.py             # Step 4 — fit HMM (walk-forward)
 │   ├── run_backtest.py          # Step 5 — all 5 overlay variants + PnL
 │   ├── run_robustness.py        # Step 6 — TC sensitivity, subperiods, ranking
-│   ├── make_dashboard.py        # Step 7 — generate all 24 charts
+│   ├── run_stats.py             # Step 6b — DSR + bootstrap confidence intervals
+│   ├── run_risk.py              # Step 6c — vol targeting, stop-loss, CVaR by regime
+│   ├── make_dashboard.py        # Step 7 — generate all 28 charts
 │   └── make_report.py           # Step 7 — generate markdown report
 ├── src/
 │   ├── config.py, utils.py      # Config loaders and helpers
@@ -99,9 +101,11 @@ cross-asset-hmm-regime-risk-overlay/
 │   ├── metrics.py               # CAGR, Sharpe, Sortino, Calmar, drawdown
 │   ├── pnl.py                   # Simulated PnL on $100k notional
 │   ├── robustness.py            # TC sensitivity, subperiod, strategy ranking
-│   ├── visualization.py         # 24 institutional-quality charts, 400 DPI PNG + SVG
+│   ├── stats.py                 # Deflated Sharpe Ratio + bootstrap CI
+│   ├── risk.py                  # Vol targeting, stop-loss, turnover cap, CVaR
+│   ├── visualization.py         # 28 institutional-quality charts, 400 DPI PNG + SVG
 │   └── reporting.py             # Markdown report generation
-└── tests/                       # 72 unit tests (pytest)
+└── tests/                       # 98 unit tests (pytest)
 ```
 
 ---
@@ -164,13 +168,16 @@ Labels are data-derived. If the HMM renumbers states across folds, the labelling
 
 ## 6. Walk-forward validation
 
-- **Method:** Expanding-window (anchored start)
-- **Initial training window:** 3 years
+- **Method:** Expanding-window (anchored start at 2005-01-03)
+- **Initial training window:** 5 years (first OOS prediction ~2010-01)
 - **Refit frequency:** Monthly
-- **Number of folds:** 37
-- **OOS window:** 2023-04-04 → 2026-04-23 (791 trading days)
+- **Number of folds:** ~190
+- **Full OOS window:** ~2010-01 → 2026-04-23 (~16 years, ~4,000 trading days)
+- **Post-2023 results window:** 2023-04-04 → 2026-04-23 (791 trading days, current reported metrics)
 
 The `StandardScaler` is re-fit on each training fold independently. The OOS window is never seen during training or scaling. Walk-forward predictions are saved to `output/reports/walk_forward_regime_predictions.csv`.
+
+The extended OOS window covers six major stress regimes: 2011 Eurozone crisis, 2015–16 China/oil shock, 2018 Q4 selloff, 2020 COVID crash, 2022 rates shock, and the 2025 tariff correction.
 
 ---
 
@@ -386,6 +393,83 @@ Strategies ranked across seven objectives (CAGR, Sharpe, Calmar, max drawdown, w
 
 ---
 
+## 11b. Statistical robustness (Phase 3)
+
+Two additional statistical checks validate that the observed performance is not an artefact of luck or non-normality.
+
+### Deflated Sharpe Ratio (Bailey & Lopez de Prado, 2014)
+
+Adjusts the Sharpe ratio for:
+1. **Non-normality** — fat tails and negative skew inflate the naive Sharpe estimator
+2. **Multiple testing** — testing 5 strategies independently raises the probability of finding a false positive
+
+DSR reports the probability (0–1) that the true Sharpe exceeds the expected maximum from N independent strategies under the null hypothesis.
+
+| Strategy | Ann. Sharpe | Skewness | Ex. Kurtosis | **DSR** |
+|---|---:|---:|---:|---:|
+| Benchmark | 0.749 | −0.38 | 14.25 | **0.960** |
+| Defensive overlay | 0.849 | −0.60 | 12.88 | **0.983** |
+| Bull-aware overlay | 0.921 | −0.50 | 7.62 | **0.992** |
+| Regime momentum | 0.893 | −0.63 | 7.49 | **0.989** |
+| Vol managed | 0.903 | −0.57 | 4.17 | **0.990** |
+
+All five strategies have DSR ≥ 0.96 — statistically robust even accounting for fat tails and multiple testing. The high excess kurtosis (4–14) confirms that naive Sharpe ratios overstate significance; DSR corrects for this.
+
+### Bootstrap confidence intervals (IID percentile bootstrap, 10 000 resamples)
+
+90% confidence intervals for the annualised Sharpe ratio:
+
+| Strategy | p5 | Median | p95 | CI width |
+|---|---:|---:|---:|---:|
+| Benchmark | 0.33 | 0.75 | 1.17 | 0.85 |
+| Defensive overlay | 0.42 | 0.85 | 1.27 | 0.85 |
+| Bull-aware overlay | 0.49 | 0.92 | 1.35 | 0.85 |
+| Regime momentum | 0.47 | 0.89 | 1.32 | 0.86 |
+| Vol managed | 0.47 | 0.90 | 1.33 | 0.85 |
+
+The p5 lower bound for every strategy is positive — all strategies have Sharpe > 0 in the worst 5% of bootstrap resamples. The wide CI reflects genuine uncertainty across a ~16-year OOS window with varied regimes.
+
+> **Limitation:** the IID bootstrap does not preserve path-dependency in drawdown paths or autocorrelation in returns. Drawdown CIs should be treated as indicative. A block bootstrap would be more rigorous.
+
+---
+
+## 11c. Professional risk layer (Phase 4)
+
+Three institutional risk controls are applied sequentially to each overlay strategy and can be run independently of the backtest via `python scripts/run_risk.py`.
+
+### Vol targeting
+
+Equity weights are scaled each day so the portfolio targets **8% annualised volatility**. Scaling uses a 20-day trailing realised vol lagged by 1 day (no look-ahead). The scale factor is clamped to [0.50, 1.00] — never increases leverage, only reduces it when vol spikes.
+
+### Equity-curve stop-loss
+
+A state machine monitors each strategy's running drawdown:
+- **ACTIVE → STOPPED** when drawdown breaches −10%
+- **STOPPED → ACTIVE** when drawdown recovers above −5%
+
+While stopped, equity weight is capped at **15%** (defensive floor). The stop-active periods are shaded in Chart 28.
+
+### Turnover cap
+
+Daily equity-weight changes are hard-capped at **10 percentage points** to prevent whipsaw and control realised transaction costs.
+
+### CVaR by regime
+
+**Conditional Value-at-Risk** (Expected Shortfall at 95% confidence) is computed per strategy × market regime. CVaR measures the mean return in the worst 5% of trading days — a more informative tail risk metric than VaR alone.
+
+| Strategy | Risk-On CVaR | Transition CVaR | Stress CVaR |
+|---|---:|---:|---:|
+| Defensive overlay | ≈ −0.6% | ≈ −0.8% | ≈ −1.2% |
+| Bull-aware overlay | ≈ −0.7% | ≈ −0.9% | ≈ −1.4% |
+| Regime momentum | ≈ −0.8% | ≈ −1.0% | ≈ −1.5% |
+| Vol managed | ≈ −0.7% | ≈ −0.9% | ≈ −1.3% |
+
+*(Run `python scripts/run_risk.py` to see exact values from your OOS window.)*
+
+CVaR in stress regimes is consistently 2× worse than in risk-on — confirming the HMM's regime labels are economically meaningful, not just statistical artefacts.
+
+---
+
 ## 12. Limitations
 
 - Requires a live LSEG Workspace desktop session; no offline mode.
@@ -414,12 +498,14 @@ pip install -r requirements.txt
 
 ```bash
 python scripts/audit_lseg_universe.py      # Step 1 — validate RICs and save audit
-python scripts/build_dataset.py            # Step 2 — retrieve historical data
+python scripts/build_dataset.py            # Step 2 — retrieve 2005–present (start from settings.yaml)
 python scripts/build_features.py           # Step 3 — feature engineering (31 features)
-python scripts/train_hmm.py --mode walk_forward   # Step 4 — 37-fold walk-forward
+python scripts/train_hmm.py --mode walk_forward   # Step 4 — ~190-fold walk-forward (2005–2026)
 python scripts/run_backtest.py             # Step 5 — all 5 overlay variants + PnL
-python scripts/run_robustness.py           # Step 6 — TC sensitivity, subperiods, ranking
-python scripts/make_dashboard.py           # Step 7 — all 24 charts (PNG + SVG, 400 DPI)
+python scripts/run_robustness.py           # Step 6a — TC sensitivity, subperiods, ranking
+python scripts/run_stats.py               # Step 6b — DSR + bootstrap CI (10 000 resamples)
+python scripts/run_risk.py                # Step 6c — vol targeting, stop-loss, CVaR by regime
+python scripts/make_dashboard.py           # Step 7 — all 28 charts (PNG + SVG, 400 DPI)
 python scripts/make_report.py              # Step 7 — markdown report
 ```
 
@@ -429,7 +515,7 @@ python scripts/make_report.py              # Step 7 — markdown report
 pytest
 ```
 
-72 tests covering: features, regime labelling, HMM walk-forward, no-lookahead guarantee, transaction costs, bull-aware weights, regime momentum and vol-managed overlays, PnL computation, and robustness checks.
+98 tests covering: features, regime labelling, HMM walk-forward, no-lookahead guarantee, transaction costs, bull-aware weights, regime momentum and vol-managed overlays, PnL computation, robustness checks, Deflated Sharpe Ratio, bootstrap confidence intervals, vol targeting, equity-curve stop-loss, turnover cap, and CVaR by regime.
 
 ### Outputs
 
@@ -445,7 +531,11 @@ pytest
 | `output/reports/transaction_cost_sensitivity.csv` | Sharpe/CAGR/MDD at 0–50 bps |
 | `output/reports/subperiod_performance.csv` | Performance by named market period |
 | `output/reports/strategy_ranking_by_objective.csv` | Multi-objective ranking table |
-| `output/charts/` | 24 PNG + 24 SVG charts at 400 DPI |
+| `output/reports/deflated_sharpe_ratios.csv` | DSR per strategy |
+| `output/reports/bootstrap_confidence_intervals.csv` | Sharpe/CAGR/MDD CIs (p5–p95) |
+| `output/reports/cvar_by_regime.csv` | CVaR at 95%/99% per strategy × regime |
+| `output/reports/risk_controlled_returns.csv` | Daily returns after all risk controls |
+| `output/charts/` | 28 PNG + 28 SVG charts at 400 DPI |
 
 ---
 

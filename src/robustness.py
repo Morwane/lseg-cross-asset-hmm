@@ -30,10 +30,17 @@ _TC_COLS: dict[str, str] = {
 DEFAULT_TC_LEVELS = [0, 5, 10, 25, 50]
 
 DEFAULT_SUBPERIODS = [
-    {"name": "2023 recovery",     "start": "2023-04-04", "end": "2023-12-31"},
-    {"name": "2024 bull market",  "start": "2024-01-01", "end": "2024-12-31"},
-    {"name": "2025 tariff corr.", "start": "2025-01-20", "end": "2025-04-30"},
-    {"name": "2026 latest",       "start": "2026-01-01", "end": "2026-04-23"},
+    # Historical crises — in OOS window with 5-year initial training from 2005
+    {"name": "2011 Eurozone crisis",  "start": "2011-07-01", "end": "2011-10-31"},
+    {"name": "2015-16 China/oil",     "start": "2015-08-01", "end": "2016-02-29"},
+    {"name": "2018 Q4 selloff",       "start": "2018-09-28", "end": "2018-12-31"},
+    {"name": "2020 COVID crash",      "start": "2020-02-15", "end": "2020-04-30"},
+    {"name": "2022 rates shock",      "start": "2022-01-01", "end": "2022-12-31"},
+    # Recent OOS window
+    {"name": "2023 recovery",         "start": "2023-04-04", "end": "2023-12-31"},
+    {"name": "2024 bull market",      "start": "2024-01-01", "end": "2024-12-31"},
+    {"name": "2025 tariff corr.",     "start": "2025-01-20", "end": "2025-04-30"},
+    {"name": "2026 latest",           "start": "2026-01-01", "end": "2026-04-23"},
 ]
 
 

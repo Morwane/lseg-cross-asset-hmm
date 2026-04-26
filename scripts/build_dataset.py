@@ -6,8 +6,9 @@ Saves output/data/raw_dataset.csv and output/data/cleaned_dataset.csv.
 Requires LSEG Workspace to be running.
 
 Usage:
-    python scripts/build_dataset.py --start 2019-04-25
-    python scripts/build_dataset.py --start 2019-04-25 --end 2024-12-31
+    python scripts/build_dataset.py                      # start date from settings.yaml
+    python scripts/build_dataset.py --start 2005-01-03
+    python scripts/build_dataset.py --start 2005-01-03 --end 2026-04-25
 """
 from __future__ import annotations
 
@@ -42,8 +43,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--start",
-        required=True,
-        help="History start date in YYYY-MM-DD format (e.g. 2019-04-25).",
+        default=None,
+        help="History start date in YYYY-MM-DD format. Defaults to backtest.start_date in settings.yaml.",
     )
     parser.add_argument(
         "--end",
@@ -96,7 +97,7 @@ def main() -> None:
 
     settings = load_settings()
 
-    start_date: str = args.start
+    start_date: str = args.start or settings.backtest.start_date
     end_date: str = args.end or date.today().isoformat()
 
     # Validate date strings

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate all charts (01-24) and save to output/charts/."""
+"""Generate all charts (01-28) and save to output/charts/."""
 from __future__ import annotations
 
 import logging
@@ -42,6 +42,10 @@ def main() -> None:
     tc_path           = report_dir / "transaction_cost_sensitivity.csv"
     subperiod_path    = report_dir / "subperiod_performance.csv"
     ranking_path      = report_dir / "strategy_ranking_by_objective.csv"
+    bootstrap_ci_path = report_dir / "bootstrap_confidence_intervals.csv"
+    dsr_path          = report_dir / "deflated_sharpe_ratios.csv"
+    cvar_path         = report_dir / "cvar_by_regime.csv"
+    rc_path           = report_dir / "risk_controlled_returns.csv"
 
     logger.info("Generating all charts → %s", chart_dir)
     saved = generate_all_charts(
@@ -58,6 +62,10 @@ def main() -> None:
         tc_sensitivity_path=tc_path,
         subperiod_path=subperiod_path,
         strategy_ranking_path=ranking_path,
+        bootstrap_ci_path=bootstrap_ci_path,
+        dsr_path=dsr_path,
+        cvar_path=cvar_path,
+        risk_controlled_path=rc_path,
     )
 
     print(f"\nGenerated {len(saved)} chart(s):")
